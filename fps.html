@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Sci-Fi Shooter</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #101025;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #game-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        /* UIレイヤー */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+        .hud-panel {
+            background: rgba(10, 10, 25, 0.75);
+            border: 2px solid #00f0ff;
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+            border-radius: 8px;
+            padding: 12px 24px;
+            color: #fff;
+            font-weight: bold;
+            font-size: 18px;
+            letter-spacing: 1px;
+            pointer-events: auto;
+        }
+        #top-hud {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+        .hud-value {
+            color: #00f0ff;
+            font-size: 24px;
+            text-shadow: 0 0 10px rgba(0, 240, 255, 0.5);
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 30px;
+            height: 30px;
+            pointer-events: none;
+        }
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #00f0ff;
+            box-shadow: 0 0 8px #00f0ff;
+        }
+        #crosshair::before {
+            top: 14px;
+            left: 0;
+            width: 30px;
+            height: 2px;
+        }
+        #crosshair::after {
+            top: 0;
+            left: 14px;
+            width: 2px;
+            height: 30px;
+        }
+        /* メッセージボックス */
+        #message-box {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(5, 5, 15, 0.95);
+            border: 3px solid #ff0055;
+            box-shadow: 0 0 25px rgba(255, 0, 85, 0.5);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            color: #fff;
+            max-width: 400px;
+            width: 90%;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            z-index: 10;
+        }
+        #message-title {
+            font-size: 28px;
+            color: #ff0055;
+            text-shadow: 0 0 10px rgba(255, 0, 85, 0.5);
+            margin: 0;
+        }
+        #message-text {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #ccc;
+            margin: 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #00f0ff, #0077ff);
+            border: none;
+            color: white;
+            padding: 12px 32px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 119, 255, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 240, 255, 0.6);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        /* モバイル用コントローラー */
+        #mobile-controls {
+            display: none;
+            justify-content: space-between;
+            width: 100%;
+            pointer-events: none;
+        }
+        .touch-zone {
+            width: 120px;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 60px;
+            pointer-events: auto;
+            position: relative;
+            touch-action: none;
+        }
+        #shoot-btn {
+            background: linear-gradient(45deg, #ff0055, #ff5500);
+            border: 2px solid #fff;
+            box-shadow: 0 0 15px rgba(255, 0, 85, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 18px;
+        }
+        #joystick-stick {
+            width: 50px;
+            height: 50px;
+            background: #00f0ff;
+            border-radius: 25px;
+            position: absolute;
+            top: 35px;
+            left: 35px;
+            box-shadow: 0 0 10px #00f0ff;
+        }
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 14px;
+            text-align: center;
+            pointer-events: none;
+            background: rgba(0,0,0,0.4);
+            padding: 5px 15px;
+            border-radius: 10px;
+        }
+        @media (max-width: 768px) {
+            #mobile-controls {
+                display: flex;
+            }
+            #instructions {
+                display: none;
+            }
+        }
+    </style>
+    <!-- Three.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- UI -->
+        <div id="ui-layer">
+            <div id="top-hud">
+                <div class="hud-panel">SCORE: <span id="score-val" class="hud-value">0</span></div>
+                <div class="hud-panel">LIFE: <span id="life-val" class="hud-value">100</span></div>
+            </div>
+            
+            <div id="crosshair"></div>
+            
+            <div id="instructions">
+                [WASD]: 移動 | [マウス移動]: 視点変更 (クリックで画面固定) | [Esc]: 固定解除
+            </div>
+
+            <!-- モバイル用UI -->
+            <div id="mobile-controls">
+                <div id="joystick-base" class="touch-zone">
+                    <div id="joystick-stick"></div>
+                </div>
+                <div id="shoot-btn" class="touch-zone">FIRE</div>
+            </div>
+        </div>
+
+        <!-- スタート/ゲームオーバー画面 -->
+        <div id="message-box">
+            <h2 id="message-title">3D SCI-FI SHOOTER</h2>
+            <p id="message-text">迫りくる赤いエネミードローンを撃破せよ！<br>攻撃を受けるとライフが減少します。</p>
+            <button id="action-btn" class="btn">START GAME</button>
+        </div>
+    </div>
+
+    <script>
+        // ゲーム状態管理
+        const gameState = {
+            started: false,
+            gameOver: false,
+            score: 0,
+            life: 100,
+            player: {
+                speed: 0.15,
+                rotationSpeed: 0.005,
+                moveForward: false,
+                moveBackward: false,
+                moveLeft: false,
+                moveRight: false
+            }
+        };
+
+        // Three.js グローバル変数
+        let scene, camera, renderer;
+        let enemies = [];
+        let bullets = [];
+        let weaponMesh;
+        let flashLight;
+        let clock;
+
+        // マウスドラッグ視点変更用変数（フォールバック用）
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+        let cameraRotation = { x: 0, y: 0 };
+
+        // ジョイスティック用変数
+        let joystickActive = false;
+        let joystickPos = { x: 0, y: 0 };
+        const joystickMaxDist = 40;
+
+        // UI要素
+        const scoreEl = document.getElementById('score-val');
+        const lifeEl = document.getElementById('life-val');
+        const messageBox = document.getElementById('message-box');
+        const messageTitle = document.getElementById('message-title');
+        const messageText = document.getElementById('message-text');
+        const actionBtn = document.getElementById('action-btn');
+
+        window.onload = function () {
+            initEngine();
+            initScene();
+            initInput();
+            
+            clock = new THREE.Clock();
+            animate();
+        };
+
+        function initEngine() {
+            const container = document.getElementById('game-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x101025, 0.02);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.6, 0); 
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(scene.fog.color);
+            container.insertBefore(renderer.domElement, container.firstChild);
+
+            window.addEventListener('resize', onWindowResize, false);
+        }
+
+        function initScene() {
+            const ambientLight = new THREE.AmbientLight(0x555577, 0.8);
+            scene.add(ambientLight);
+
+            const dirLight = new THREE.DirectionalLight(0x00f0ff, 1.2);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            const backLight = new THREE.DirectionalLight(0x7700ff, 0.5);
+            backLight.position.set(-10, 15, -10);
+            scene.add(backLight);
+
+            flashLight = new THREE.PointLight(0xff5500, 0, 10);
+            scene.add(flashLight);
+
+            const floorGeo = new THREE.PlaneGeometry(100, 100, 20, 20);
+            const floorMat = new THREE.MeshStandardMaterial({ 
+                color: 0x222244, 
+                wireframe: true,
+                roughness: 0.6
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.y = 0;
+            scene.add(floor);
+
+            const pillarGeo = new THREE.BoxGeometry(2, 8, 2);
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0x2d2d59, roughness: 0.4 });
+            
+            for(let i=0; i<15; i++) {
+                const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+                let rx = (Math.random() - 0.5) * 60;
+                let rz = (Math.random() - 0.5) * 60;
+                if(Math.abs(rx) < 5) rx += 10;
+                if(Math.abs(rz) < 5) rz += 10;
+                pillar.position.set(rx, 4, rz);
+                scene.add(pillar);
+            }
+
+            const weaponGeo = new THREE.CylinderGeometry(0.03, 0.04, 0.4, 8);
+            const weaponMat = new THREE.MeshStandardMaterial({ color: 0x555555, metalness: 0.8 });
+            weaponMesh = new THREE.Mesh(weaponGeo, weaponMat);
+            weaponMesh.rotation.x = Math.PI / 2;
+            scene.add(weaponMesh);
+        }
+
+        function initInput() {
+            const container = document.getElementById('game-container');
+
+            window.addEventListener('keydown', (e) => {
+                if (!gameState.started) return;
+                
+                if (['KeyW', 'KeyS', 'KeyA', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+                    e.preventDefault();
+                }
+
+                const key = e.key.toLowerCase();
+                if (e.code === 'KeyW' || key === 'w' || e.code === 'ArrowUp') gameState.player.moveForward = true;
+                if (e.code === 'KeyS' || key === 's' || e.code === 'ArrowDown') gameState.player.moveBackward = true;
+                if (e.code === 'KeyA' || key === 'a' || e.code === 'ArrowLeft') gameState.player.moveLeft = true;
+                if (e.code === 'KeyD' || key === 'd' || e.code === 'ArrowRight') gameState.player.moveRight = true;
+            });
+
+            window.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (e.code === 'KeyW' || key === 'w' || e.code === 'ArrowUp') gameState.player.moveForward = false;
+                if (e.code === 'KeyS' || key === 's' || e.code === 'ArrowDown') gameState.player.moveBackward = false;
+                if (e.code === 'KeyA' || key === 'a' || e.code === 'ArrowLeft') gameState.player.moveLeft = false;
+                if (e.code === 'KeyD' || key === 'd' || e.code === 'ArrowRight') gameState.player.moveRight = false;
+            });
+
+            // マウスダウン（Pointer Lock非対応環境や初期クリック用のドラッグ対応）
+            container.addEventListener('mousedown', (e) => {
+                if(e.target.tagName === 'BUTTON' || e.target.closest('#mobile-controls')) return;
+                if (!gameState.started || gameState.gameOver) return;
+                isDragging = true;
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+
+            // 改善された視点移動処理
+            window.addEventListener('mousemove', (e) => {
+                if (!gameState.started || gameState.gameOver) return;
+
+                // 1. Pointer Lock APIが有効な場合（ドラッグ不要でマウスを動かすだけ）
+                if (document.pointerLockElement === container) {
+                    // movementX/Yを利用して滑らかに視点移動（0.35は感度調整用の係数）
+                    cameraRotation.y -= e.movementX * gameState.player.rotationSpeed * 0.35;
+                    cameraRotation.x -= e.movementY * gameState.player.rotationSpeed * 0.35;
+                } 
+                // 2. ポインターロックされていない場合のドラッグ操作（フォールバック）
+                else if (isDragging) {
+                    const deltaMove = {
+                        x: e.clientX - previousMousePosition.x,
+                        y: e.clientY - previousMousePosition.y
+                    };
+                    cameraRotation.y -= deltaMove.x * gameState.player.rotationSpeed;
+                    cameraRotation.x -= deltaMove.y * gameState.player.rotationSpeed;
+                    previousMousePosition = { x: e.clientX, y: e.clientY };
+                } else {
+                    return;
+                }
+
+                cameraRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, cameraRotation.x));
+                camera.rotation.set(cameraRotation.x, cameraRotation.y, 0, 'YXZ');
+            });
+
+            window.addEventListener('mouseup', () => { isDragging = false; });
+
+            // クリック時に発砲しつつ、PCであればポインターロックを要求する
+            container.addEventListener('click', (e) => {
+                if(e.target.tagName === 'BUTTON' || e.target.closest('#mobile-controls')) return;
+                
+                if (gameState.started && !gameState.gameOver) {
+                    // タッチデバイスでなければポインターロックを実行（FPSゲーム化）
+                    if (!('ontouchstart' in window) && document.pointerLockElement !== container) {
+                        container.requestPointerLock();
+                    }
+                    shootBullet();
+                }
+            });
+
+            // モバイル操作用イベント
+            const joyBase = document.getElementById('joystick-base');
+            const joyStick = document.getElementById('joystick-stick');
+            const shootBtn = document.getElementById('shoot-btn');
+
+            joyBase.addEventListener('touchstart', (e) => {
+                joystickActive = true;
+                handleJoystickMove(e.touches[0]);
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                // 右半分ドラッグによる視点移動（スマホ用）の感度も向上
+                if(!joystickActive && e.touches.length > 0 && gameState.started && !gameState.gameOver) {
+                    const touch = e.touches[0];
+                    if(touch.clientX > window.innerWidth / 2) {
+                        if(previousMousePosition.x !== 0) {
+                            const dx = touch.clientX - previousMousePosition.x;
+                            const dy = touch.clientY - previousMousePosition.y;
+                            // 感度係数を 0.008 から 0.013 に引き上げ、より少ない指の動きで広く見渡せるように改善
+                            cameraRotation.y -= dx * 0.013;
+                            cameraRotation.x -= dy * 0.013;
+                            cameraRotation.x = Math.max(-Math.PI/3, Math.min(Math.PI/3, cameraRotation.x));
+                            camera.rotation.set(cameraRotation.x, cameraRotation.y, 0, 'YXZ');
+                        }
+                        previousMousePosition = { x: touch.clientX, y: touch.clientY };
+                        return;
+                    }
+                }
+
+                if (!joystickActive) return;
+                handleJoystickMove(e.touches[0]);
+            });
+
+            window.addEventListener('touchend', () => {
+                joystickActive = false;
+                joyStick.style.transform = `translate(0px, 0px)`;
+                gameState.player.moveForward = false;
+                gameState.player.moveBackward = false;
+                gameState.player.moveLeft = false;
+                gameState.player.moveRight = false;
+                previousMousePosition = { x: 0, y: 0 };
+            });
+
+            function handleJoystickMove(touch) {
+                const rect = joyBase.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                let dx = touch.clientX - centerX;
+                let dy = touch.clientY - centerY;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+
+                if (dist > joystickMaxDist) {
+                    dx = (dx / dist) * joystickMaxDist;
+                    dy = (dy / dist) * joystickMaxDist;
+                }
+
+                joyStick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                gameState.player.moveForward = dy < -15;
+                gameState.player.moveBackward = dy > 15;
+                gameState.player.moveLeft = dx < -15;
+                gameState.player.moveRight = dx > 15;
+            }
+
+            shootBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (gameState.started && !gameState.gameOver) {
+                    shootBullet();
+                }
+            });
+
+            actionBtn.addEventListener('click', () => {
+                if(!gameState.started || gameState.gameOver) {
+                    startGame();
+                }
+            });
+        }
+
+        function startGame() {
+            gameState.started = true;
+            gameState.gameOver = false;
+            gameState.score = 0;
+            gameState.life = 100;
+            scoreEl.innerText = gameState.score;
+            lifeEl.innerText = gameState.life;
+            messageBox.style.display = 'none';
+
+            enemies.forEach(e => scene.remove(e.mesh));
+            bullets.forEach(b => scene.remove(b.mesh));
+            enemies = [];
+            bullets = [];
+
+            camera.position.set(0, 1.6, 0);
+            cameraRotation = { x: 0, y: 0 };
+            camera.rotation.set(0,0,0);
+        }
+
+        function endGame(isWin = false) {
+            gameState.gameOver = true;
+            messageBox.style.display = 'flex';
+            
+            // ゲーム終了時は自動的にポインターロックを解除
+            if(document.pointerLockElement) {
+                document.exitPointerLock();
+            }
+
+            if(isWin) {
+                messageTitle.innerText = "MISSION CLEAR";
+                messageTitle.style.color = "#00f0ff";
+                messageBox.style.borderColor = "#00f0ff";
+                messageText.innerHTML = `見事にドローン軍団を殲滅した！<br>最終スコア: <span style="color:#00f0ff;font-size:20px;">${gameState.score}</span>`;
+            } else {
+                messageTitle.innerText = "GAME OVER";
+                messageTitle.style.color = "#ff0055";
+                messageBox.style.borderColor = "#ff0055";
+                messageText.innerHTML = `機体が大破した…<br>最終スコア: <span style="color:#ff0055;font-size:20px;">${gameState.score}</span>`;
+            }
+            actionBtn.innerText = "RESTART";
+        }
+
+        function shootBullet() {
+            const bulletGeo = new THREE.SphereGeometry(0.05, 8, 8);
+            const bulletMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+            const bulletMesh = new THREE.Mesh(bulletGeo, bulletMat);
+
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            bulletMesh.position.copy(camera.position).addScaledVector(dir, 0.5);
+            scene.add(bulletMesh);
+
+            bullets.push({
+                mesh: bulletMesh,
+                direction: dir,
+                speed: 0.6,
+                aliveTime: 0
+            });
+
+            flashLight.position.copy(bulletMesh.position);
+            flashLight.intensity = 2;
+            setTimeout(() => { flashLight.intensity = 0; }, 50);
+        }
+
+        function spawnEnemy() {
+            if (enemies.length >= 8 || !gameState.started || gameState.gameOver) return;
+
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 20 + Math.random() * 15;
+            const x = camera.position.x + Math.sin(angle) * distance;
+            const z = camera.position.z + Math.cos(angle) * distance;
+            const y = 1.0 + Math.random() * 2.0;
+
+            const enemyGeo = new THREE.BoxGeometry(0.8, 0.8, 0.8);
+            const enemyMat = new THREE.MeshStandardMaterial({ 
+                color: 0xff0055, 
+                emissive: 0x550022, 
+                roughness: 0.3 
+            });
+            const mesh = new THREE.Mesh(enemyGeo, enemyMat);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+
+            enemies.push({
+                mesh: mesh,
+                speed: 0.03 + Math.random() * 0.03,
+                lastAttack: 0
+            });
+        }
+
+        function updatePlayerMovement() {
+            const front = new THREE.Vector3();
+            const side = new THREE.Vector3();
+
+            camera.getWorldDirection(front);
+            front.y = 0; 
+            front.normalize();
+
+            side.crossVectors(front, camera.up).normalize().negate();
+
+            const moveVec = new THREE.Vector3();
+
+            if (gameState.player.moveForward) moveVec.add(front);
+            if (gameState.player.moveBackward) moveVec.addScaledVector(front, -1);
+            if (gameState.player.moveLeft) moveVec.addScaledVector(side, -1);
+            if (gameState.player.moveRight) moveVec.add(side);
+
+            if (moveVec.lengthSq() > 0) {
+                moveVec.normalize().addScaledVector(moveVec, gameState.player.speed);
+                camera.position.add(moveVec);
+                
+                camera.position.x = Math.max(-45, Math.min(45, camera.position.x));
+                camera.position.z = Math.max(-45, Math.min(45, camera.position.z));
+            }
+        }
+
+        function updateWeaponPosition() {
+            const dir = new THREE.Vector3();
+            camera.getWorldDirection(dir);
+            
+            const right = new THREE.Vector3();
+            right.crossVectors(dir, camera.up).normalize().negate();
+            
+            const up = new THREE.Vector3();
+            up.crossVectors(right, dir).normalize();
+
+            weaponMesh.position.copy(camera.position)
+                .addScaledVector(dir, 0.4)
+                .addScaledVector(right, 0.15)
+                .addScaledVector(up, -0.15);
+
+            weaponMesh.rotation.copy(camera.rotation);
+            weaponMesh.rotation.x += Math.PI / 2;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+            const time = clock.getElapsedTime();
+
+            if (gameState.started && !gameState.gameOver) {
+                updatePlayerMovement();
+                updateWeaponPosition();
+
+                if (Math.random() < 0.02) {
+                    spawnEnemy();
+                }
+
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    const b = bullets[i];
+                    b.mesh.position.addScaledVector(b.direction, b.speed);
+                    b.aliveTime += delta;
+
+                    if (b.aliveTime > 2.0 || b.mesh.position.length() > 100) {
+                        scene.remove(b.mesh);
+                        bullets.splice(i, 1);
+                        continue;
+                    }
+
+                    for (let j = enemies.length - 1; j >= 0; j--) {
+                        const e = enemies[j];
+                        const dist = b.mesh.position.distanceTo(e.mesh.position);
+
+                        if (dist < 0.6) {
+                            scene.remove(e.mesh);
+                            scene.remove(b.mesh);
+                            enemies.splice(j, 1);
+                            bullets.splice(i, 1);
+                            
+                            gameState.score += 10;
+                            scoreEl.innerText = gameState.score;
+
+                            if(gameState.score >= 100) {
+                                endGame(true);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    const e = enemies[i];
+                    
+                    const playerPos = camera.position.clone();
+                    playerPos.y = e.mesh.position.y; 
+                    const toPlayer = new THREE.Vector3().subVectors(playerPos, e.mesh.position).normalize();
+                    
+                    e.mesh.position.addScaledVector(toPlayer, e.speed);
+                    e.mesh.position.y += Math.sin(time * 5 + i) * 0.01;
+                    e.mesh.rotation.x += 0.01;
+                    e.mesh.rotation.y += 0.02;
+
+                    const distToPlayer = e.mesh.position.distanceTo(camera.position);
+                    if (distToPlayer < 1.8) {
+                        if (time - e.lastAttack > 1.0) {
+                            gameState.life -= 20;
+                            lifeEl.innerText = Math.max(0, gameState.life);
+                            e.lastAttack = time;
+                            
+                            flashLight.position.copy(camera.position);
+                            flashLight.color.setHex(0xff0000);
+                            flashLight.intensity = 3;
+                            setTimeout(() => { 
+                                flashLight.intensity = 0; 
+                                flashLight.color.setHex(0xff5500);
+                            }, 150);
+
+                            if (gameState.life <= 0) {
+                                endGame(false);
+                            }
+                        }
+                    }
+                }
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+    </script>
+</body>
+</html>
