@@ -1,0 +1,1004 @@
+ケモナー撃退RPG - モフモフ大戦【爽快爆速インフレ版】
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ケモナー撃退RPG - モフモフ大戦【爽快爆速インフレ版】</title>
+    <style>
+        :root {
+            --bg-color: #1a1a2e;
+            --panel-color: #16213e;
+            --accent-color: #e94560;
+            --text-color: #ffffff;
+            --text-dim: #95a5a6;
+            --success-color: #2ecc71;
+            --gold-color: #f1c40f;
+        }
+
+        * {
+            box-sizing: border-box;
+
+
+
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .game-container {
+            width: 100%;
+
+
+
+            max-width: 800px;
+            background-color: var(--panel-color);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ヘッダー */
+        .game-header {
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            padding: 15px;
+            text-align: center;
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .game-header h1 {
+            font-size: 1.5rem;
+
+
+
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        /* メイン画面分割 */
+        .game-main {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        @media (min-width: 600px) {
+            .game-main {
+                grid-template-columns: 250px 1fr;
+            }
+        }
+
+        /* ステータスパネル */
+        .status-panel {
+            background-color: rgba(0, 0, 0, 0.2);
+
+
+
+            padding: 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        @media (min-width: 600px) {
+            .status-panel {
+                border-bottom: none;
+                border-right: 1px solid rgba(255,255,255,0.1);
+            }
+        }
+
+        .status-group {
+            background: rgba(255,255,255,0.05);
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 4px solid var(--success-color);
+
+
+
+        }
+
+        .status-title {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .status-value {
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .gold-text {
+            color: var(--gold-color);
+        }
+
+        /* ゲージ系 */
+
+
+
+        .bar-container {
+            width: 100%;
+            background-color: #2c3e50;
+            border-radius: 6px;
+            height: 12px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.1s ease;
+        }
+
+        .hp-bar { background-color: #e74c3c; }
+        .exp-bar { background-color: #3498db; }
+
+        /* バトルエリア */
+
+
+
+        .battle-area {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 350px;
+            position: relative;
+        }
+
+        .enemy-panel {
+            text-align: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .enemy-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+
+
+
+            margin-bottom: 5px;
+            color: #ff7675;
+        }
+
+        .enemy-type-desc {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            min-height: 1.2em;
+        }
+
+        /* 敵の見た目表示エリア */
+        .enemy-display-container {
+            position: relative;
+            width: 160px;
+            height: 160px;
+            margin: 20px auto;
+            cursor: pointer;
+        }
+
+
+
+
+        .enemy-avatar {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle, rgba(233,69,96,0.3) 0%, rgba(0,0,0,0) 70%);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 5.5rem;
+            transition: transform 0.05s ease;
+        }
+
+        .enemy-avatar:active {
+            transform: scale(0.92);
+        }
+
+        /* ダメージポップアップ用 */
+        .damage-popup {
+            position: absolute;
+
+
+
+            font-weight: 900;
+            font-size: 1.8rem;
+            color: #ff3838;
+            text-shadow: 2px 2px 0px #000;
+            pointer-events: none;
+            animation: floatUp 0.5s ease-out forwards;
+            z-index: 10;
+        }
+        
+        .damage-popup.player-heal {
+            color: #2ecc71;
+        }
+        
+        .damage-popup.enemy-damage {
+            color: #f1c40f;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(0.8); opacity: 1; }
+
+
+
+            100% { transform: translateY(-70px) scale(1.4); opacity: 0; }
+        }
+
+        /* アクション・ショップボタン */
+        .action-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1rem;
+
+
+
+            cursor: pointer;
+            box-shadow: 0 4px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+            text-align: center;
+        }
+
+        .btn:hidden { display: none; }
+
+        .btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px rgba(0,0,0,0.3);
+        }
+
+        .btn-attack {
+            background: linear-gradient(135deg, #e94560, #9a0f2e);
+            font-size: 1.2rem;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+        }
+
+
+
+
+        /* タブシステム（ショップとログ） */
+        .tab-container {
+            border-top: 1px solid rgba(255,255,255,0.1);
+            background-color: rgba(0,0,0,0.1);
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: none;
+            border: none;
+            color: var(--text-dim);
+            font-weight: bold;
+            cursor: pointer;
+
+
+
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            color: var(--text-color);
+            background-color: rgba(255,255,255,0.05);
+            border-bottom: 3px solid var(--accent-color);
+        }
+
+        .tab-content {
+            padding: 15px;
+            height: 180px;
+            overflow-y: auto;
+        }
+
+        /* ショップアイテム */
+        .shop-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+
+
+
+            gap: 10px;
+        }
+
+        @media (min-width: 500px) {
+            .shop-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .shop-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 8px;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+
+
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-name {
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+
+        .item-desc {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+        }
+
+        .item-cost {
+            font-size: 0.85rem;
+            color: var(--gold-color);
+            margin-top: 2px;
+
+
+
+            font-weight: bold;
+        }
+
+        .btn-buy {
+            padding: 6px 12px;
+            font-size: 0.8rem;
+            background-color: #27ae60;
+        }
+
+        .btn-buy:disabled {
+            background-color: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ログスタイル */
+        .log-line {
+            font-size: 0.85rem;
+
+
+
+            margin-bottom: 4px;
+            line-height: 1.4;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            padding-bottom: 2px;
+        }
+        .log-player { color: #3498db; }
+        .log-enemy { color: #e74c3c; }
+        .log-system { color: #f1c40f; }
+        .log-victory { color: #2ecc71; font-weight: bold; }
+
+        /* 自作ダイアログ（満腹お仕置き用/全滅用） */
+        .custom-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+
+
+
+            padding: 20px;
+        }
+
+        .modal-content {
+            background-color: var(--panel-color);
+            border: 2px solid var(--accent-color);
+            padding: 25px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .modal-title {
+            font-size: 1.4rem;
+            margin-bottom: 10px;
+            color: var(--accent-color);
+        }
+
+
+
+
+        .modal-text {
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            color: var(--text-color);
+            line-height: 1.5;
+        }
+
+        /* 画面の揺れアニメーション */
+        .shake {
+            animation: screenShake 0.15s linear infinite;
+        }
+
+        @keyframes screenShake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            10deg { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(0px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+
+
+
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(2px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(2px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(0deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container" id="gameScreen">
+        <!-- ヘッダー -->
+        <div class="game-header">
+            <h1>ケモナー撃退RPG ★ モフモフ大戦【爆速無双版】</h1>
+        </div>
+
+        <div class="game-main">
+            <!-- ステータスパネル -->
+            <div class="status-panel">
+
+
+
+                <div class="status-group" style="border-left-color: #e74c3c;">
+                    <div class="status-title">プレイヤー レベル</div>
+                    <div class="status-value" id="p-level">1</div>
+                    <div class="status-title" style="margin-top:5px;">HP <span id="p-hp-text">150/150</span></div>
+                    <div class="bar-container">
+                        <div class="bar-fill hp-bar" id="p-hp-bar" style="width: 100%;"></div>
+                    </div>
+                </div>
+
+                <div class="status-group" style="border-left-color: #3498db;">
+                    <div class="status-title">次レベルまで (EXP)</div>
+                    <div class="status-value" id="p-exp-text">0 / 4</div>
+                    <div class="bar-container">
+                        <div class="bar-fill exp-bar" id="p-exp-bar" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div class="status-group" style="border-left-color: #f1c40f;">
+                    <div class="status-title">所持ゴールド</div>
+
+
+
+                    <div class="status-value gold-text"><span id="p-gold">0</span> G</div>
+                </div>
+
+                <div class="status-group" style="border-left-color: #9b59b6;">
+                    <div class="status-title">現在のステータス</div>
+                    <div class="status-info" style="font-size: 0.85rem; line-height: 1.4;">
+                        攻撃力: <span id="p-atk">30</span><br>
+                        自動DPS: <span id="p-dps">0</span>/秒<br>
+                        撃破数: <span id="p-kills">0</span>人
+                    </div>
+                </div>
+            </div>
+
+            <!-- バトルエリア -->
+            <div class="battle-area">
+                <div class="enemy-panel">
+                    <div class="enemy-name" id="e-name">野生のケモナー見習い</div>
+                    <div class="enemy-type-desc" id="e-desc">「ああっ、そのもふもふした尻尾を触らせてくれぇ！」</div>
+                    
+
+
+
+                    <div class="bar-container" style="max-width: 300px; margin: 0 auto; height: 16px; border: 1px solid rgba(255,255,255,0.2);">
+                        <div class="bar-fill hp-bar" id="e-hp-bar" style="width: 100%; background-color: #cc1d1d;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-dim); margin-top: 4px;" id="e-hp-text">HP: 35/35</div>
+                </div>
+
+                <!-- 敵タップエリア -->
+                <div class="enemy-display-container" id="enemyTarget">
+                    <div class="enemy-avatar" id="e-avatar">🧑‍💻</div>
+                </div>
+
+                <div class="action-area">
+                    <button class="btn btn-attack" id="attackBtn">💥 超・一撃お仕置き！ (連打で即撃破)</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下部タブエリア -->
+        <div class="tab-container">
+
+
+
+            <div class="tabs">
+                <button class="tab-btn active" id="tabShopBtn" onclick="switchTab('shop')">🛒 爆速強化ショップ</button>
+                <button class="tab-btn" id="tabLogBtn" onclick="switchTab('log')">📜 戦闘ログ</button>
+            </div>
+
+            <!-- ショップ中身 -->
+            <div class="tab-content" id="tab-shop">
+                <div class="shop-grid">
+                    <div class="shop-item">
+                        <div class="item-info">
+                            <span class="item-name">ギガ鉄のハリセン</span>
+                            <span class="item-desc">一撃の重みが違う。攻撃力+25</span>
+                            <span class="item-cost" id="cost-wpn">10 G</span>
+                        </div>
+                        <button class="btn btn-buy" id="buy-wpn" onclick="buyUpgrade('wpn')">購入</button>
+                    </div>
+
+                    <div class="shop-item">
+                        <div class="item-info">
+
+
+
+                            <span class="item-name">現実爆音スピーカー</span>
+                            <span class="item-desc">ケモナーが瞬時に正気に戻る。秒間DPS+15</span>
+                            <span class="item-cost" id="cost-dps">25 G</span>
+                        </div>
+                        <button class="btn btn-buy" id="buy-dps" onclick="buyUpgrade('dps')">購入</button>
+                    </div>
+
+                    <div class="shop-item">
+                        <div class="item-info">
+                            <span class="item-name">超・高機動プロテイン</span>
+                            <span class="item-desc">無限の体力を得る。最大HP+100、HP全回復</span>
+                            <span class="item-cost" id="cost-hp">15 G</span>
+                        </div>
+                        <button class="btn btn-buy" id="buy-hp" onclick="buyUpgrade('hp')">購入</button>
+                    </div>
+
+                    <div class="shop-item">
+                        <div class="item-info">
+                            <span class="item-name">ハイパーもふもふ囮ドール</span>
+
+
+
+                            <span class="item-desc">ケモナーを完全無力化。敵の攻撃力-5(最低1)</span>
+                            <span class="item-cost" id="cost-debuff">40 G</span>
+                        </div>
+                        <button class="btn btn-buy" id="buy-debuff" onclick="buyUpgrade('debuff')">購入</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ログ中身 -->
+            <div class="tab-content" id="tab-log" style="display: none;">
+                <div id="log-container">
+                    <div class="log-line log-system">ゲームが開始されました！ケモナーたちを圧倒的な力で正気に戻しましょう！</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- モーダルダイアログ -->
+    <div class="custom-modal" id="gameModal">
+
+
+
+        <div class="modal-content">
+            <div class="modal-title" id="modalTitle">警告</div>
+            <div class="modal-text" id="modalText">ここにメッセージが入ります。</div>
+            <button class="btn" style="width: 100%;" onclick="closeModal()">了解</button>
+        </div>
+    </div>
+
+    <script>
+        // ゲームデータ (初期ステータスと成長速度を大幅に引き上げ)
+        const player = {
+            level: 1,
+            hp: 150,
+            maxHp: 150,
+            atk: 30, // 初期攻撃力を3倍に
+            dps: 0,
+            gold: 0,
+            exp: 0,
+            maxExp: 4, // 必要経験値を半分以下に（すぐレベルアップ！）
+            kills: 0,
+
+
+
+            debuffLevel: 0
+        };
+
+        // ケモナー敵データプール (爽快に倒せるようHPの上がり方をマイルドに調整)
+        const enemyTemplates = [
+            { name: "もふもふ初心者", desc: "「耳！耳が生えてるぞ！触らせろ！」", avatar: "🧑", baseHp: 35, baseAtk: 2, gold: 15, exp: 3 },
+            { name: "執念のけもの狩り（カメラ持ち）", desc: "「最高のローアングルからモフみを撮影させてくれ！」", avatar: "📸", baseHp: 65, baseAtk: 5, gold: 30, exp: 5 },
+            { name: "肉球崇拝カルト信者", desc: "「プニプニ…肉球の弾力こそが世界の心理なのだァ！」", avatar: "🛐", baseHp: 110, baseAtk: 9, gold: 60, exp: 8 },
+            { name: "ケモミミ絶対防衛隊長", desc: "「コスプレじゃない、本物のケモ耳を愛でるのが正義だ！」", avatar: "🛡️", baseHp: 200, baseAtk: 15, gold: 120, exp: 12 },
+            { name: "暴走せし重度ケモナー大聖下", desc: "「我自身がケモノに転生すれば全て解決するのだ！！」", avatar: "🦁", baseHp: 380, baseAtk: 22, gold: 250, exp: 20 }
+        ];
+
+        let currentEnemy = null;
+        let enemyHp = 0;
+        let enemyMaxHp = 0;
+
+        // ショップ価格データ（安くしてすぐ買えるように調整）
+        const shopCosts = { wpn: 10, dps: 25, hp: 15, debuff: 40 };
+        const shopLevels = { wpn: 0, dps: 0, hp: 0, debuff: 0 };
+
+
+
+
+        // 要素取得
+        const enemyTarget = document.getElementById('enemyTarget');
+        const attackBtn = document.getElementById('attackBtn');
+        const logContainer = document.getElementById('log-container');
+        const gameScreen = document.getElementById('gameScreen');
+
+        // 初期化
+        window.onload = function() {
+            spawnEnemy();
+            updateUI();
+            
+            // ループ処理（自動DPSと敵の自動攻撃）
+            setInterval(gameLoop, 1000);
+            
+            // イベントリスナー
+            enemyTarget.addEventListener('click', playerAttack);
+            attackBtn.addEventListener('click', playerAttack);
+        };
+
+
+
+
+        // 敵の生成
+        function spawnEnemy() {
+            const tier = Math.min(Math.floor(player.kills / 3), enemyTemplates.length - 1);
+            const template = enemyTemplates[tier];
+            
+            // 敵のHPスケールをプレイヤーの圧倒的パワーに合わせて調整
+            const scale = 1 + (player.kills * 0.12);
+            
+            currentEnemy = {
+                name: template.name + (tier === enemyTemplates.length - 1 ? ` (Lv.${player.kills})` : ""),
+                desc: template.desc,
+                avatar: template.avatar,
+                maxHp: Math.floor(template.baseHp * scale),
+                atk: Math.max(1, Math.floor(template.baseAtk * Math.sqrt(scale)) - player.debuffLevel * 3),
+                gold: Math.floor(template.gold * (1 + player.kills * 0.2)), // 貰えるゴールドも爆増
+                exp: template.exp
+            };
+
+            enemyMaxHp = currentEnemy.maxHp;
+
+
+
+            enemyHp = enemyMaxHp;
+
+            document.getElementById('e-name').innerText = currentEnemy.name;
+            document.getElementById('e-desc').innerText = currentEnemy.desc;
+            document.getElementById('e-avatar').innerText = currentEnemy.avatar;
+            
+            addLog(`強敵「${currentEnemy.name}」が現れた！`, "log-enemy");
+            updateUI();
+        }
+
+        // プレイヤーの攻撃
+        function playerAttack(e) {
+            if (player.hp <= 0 || enemyHp <= 0) return;
+
+            // クリティカル確率を30%にアップ！
+            const isCritical = Math.random() < 0.30;
+            const dmg = isCritical ? Math.floor(player.atk * 2.0) : player.atk;
+
+            enemyHp -= dmg;
+
+
+
+            
+            // アニメーションエフェクト
+            triggerHitEffect(enemyTarget);
+            createDamagePopup(enemyTarget, dmg, isCritical ? '💥CRITICAL!!' : '', false);
+
+            addLog(`プレイヤーの超必殺攻撃！ ${currentEnemy.name}に ${dmg} の大ダメージ！`, "log-player");
+
+            if (enemyHp <= 0) {
+                enemyHp = 0;
+                handleEnemyDefeat();
+            }
+            updateUI();
+        }
+
+        // 敵の撃破報酬処理
+        function handleEnemyDefeat() {
+            addLog(`瞬殺！ ${currentEnemy.name} は光の速さで正気を取り戻した！`, "log-victory");
+            
+            player.gold += currentEnemy.gold;
+
+
+
+            player.exp += currentEnemy.exp;
+            player.kills++;
+
+            addLog(`💰 ${currentEnemy.gold} ゴールド と 🌟 ${currentEnemy.exp} EXP を獲得！`, "log-system");
+
+            // レベルアップ判定 (インフレ爽快調整)
+            if (player.exp >= player.maxExp) {
+                player.exp -= player.maxExp;
+                player.level++;
+                player.maxExp = Math.floor(player.maxExp * 1.2) + 2; // 必要EXPの上昇をマイルドに
+                player.atk += 20; // レベルアップで攻撃力+20 (旧:+6)
+                player.maxHp += 50; // 最大HP+50 (旧:+20)
+                player.hp = player.maxHp; // レベルアップで全回復
+                
+                showModal("🔥 レベルアップ！ 🔥", `爆速成長！プレイヤーがレベル ${player.level} に到達！<br>【攻撃力 +20】 【最大HP +50】され、体力が全回復しました！`);
+                addLog(`【レベルアップ】 レベル ${player.level} になりました！攻撃力+20、最大HP+50`, "log-system");
+            }
+
+            // 次の敵を爆速で生成 (0.1秒)
+
+
+
+            setTimeout(spawnEnemy, 100);
+        }
+
+        // 定期ループ（1秒ごと）
+        function gameLoop() {
+            if (player.hp <= 0) return;
+
+            // 1. 自動DPSの適用
+            if (player.dps > 0 && enemyHp > 0) {
+                enemyHp -= player.dps;
+                createDamagePopup(enemyTarget, player.dps, '', true);
+                if (enemyHp <= 0) {
+                    enemyHp = 0;
+                    handleEnemyDefeat();
+                    updateUI();
+                    return;
+                }
+            }
+
+
+
+
+            // 2. 敵からのもふもふ攻撃
+            if (enemyHp > 0) {
+                const dmg = currentEnemy.atk;
+                player.hp -= dmg;
+                
+                triggerHitEffect(gameScreen, true);
+                createDamagePopup(document.querySelector('.status-group'), dmg, '', false, true);
+                
+                addLog(`${currentEnemy.name} のハグ攻撃！ プレイヤーは ${dmg} の精神的ダメージを受けた！`, "log-enemy");
+
+                if (player.hp <= 0) {
+                    player.hp = 0;
+                    handlePlayerDefeat();
+                }
+            }
+            updateUI();
+        }
+
+        // プレイヤーの敗北処理
+
+
+
+        function handlePlayerDefeat() {
+            addLog(`【全滅】 ケモナーたちの圧倒的もふもふ愛に押し潰された…！`, "log-enemy");
+            showModal("お仕置き完了（？）", "ケモナー達に囲まれてモフモフの刑に処されました。街に戻って体力を回復します（ゴールドは減りません！）。");
+            
+            // デスペナルティを免除してサクサク進める仕様に
+            player.hp = player.maxHp;
+            spawnEnemy();
+        }
+
+        // UI更新
+        function updateUI() {
+            // プレイヤー
+            document.getElementById('p-level').innerText = player.level;
+            document.getElementById('p-hp-text').innerText = `player.hp/{player.maxHp}`;
+            document.getElementById('p-hp-bar').style.width = `${(player.hp / player.maxHp) * 100}%`;
+            
+            document.getElementById('p-exp-text').innerText = `${player.exp} / ${player.maxExp}`;
+            document.getElementById('p-exp-bar').style.width = `${(player.exp / player.maxExp) * 100}%`;
+            
+
+
+
+            document.getElementById('p-gold').innerText = player.gold;
+            document.getElementById('p-atk').innerText = player.atk;
+            document.getElementById('p-dps').innerText = player.dps;
+            document.getElementById('p-kills').innerText = player.kills;
+
+            // 敵
+            if (currentEnemy) {
+                document.getElementById('e-hp-text').innerText = `HP: enemyHp/{enemyMaxHp}`;
+                document.getElementById('e-hp-bar').style.width = `${(enemyHp / enemyMaxHp) * 100}%`;
+            }
+
+            // ショップボタンの有効・無効化
+            for (const key in shopCosts) {
+                const btn = document.getElementById(`buy-${key}`);
+                if (player.gold >= shopCosts[key]) {
+                    btn.disabled = false;
+                } else {
+                    btn.disabled = true;
+                }
+
+
+
+            }
+        }
+
+        // アップグレード購入 (強化効率を大幅引き上げ)
+        function buyUpgrade(type) {
+            const cost = shopCosts[type];
+            if (player.gold < cost) return;
+
+            player.gold -= cost;
+            shopLevels[type]++;
+
+            if (type === 'wpn') {
+                player.atk += 25; // +5から+25に爆増
+                shopCosts.wpn = Math.floor(cost * 1.4);
+                document.getElementById('cost-wpn').innerText = `${shopCosts.wpn} G`;
+                addLog(`「ギガ鉄のハリセン」を購入。攻撃力が 25 上がった！`, "log-system");
+            } else if (type === 'dps') {
+                player.dps += 15; // +2から+15に爆増 (放置でも即死レベル)
+                shopCosts.dps = Math.floor(cost * 1.4);
+
+
+
+                document.getElementById('cost-dps').innerText = `${shopCosts.dps} G`;
+                addLog(`「現実爆音スピーカー」を購入。自動秒間ダメージが 15 上がった！`, "log-system");
+            } else if (type === 'hp') {
+                player.maxHp += 100; // +30から+100に増量
+                player.hp = player.maxHp; // 全回復
+                shopCosts.hp = Math.floor(cost * 1.3);
+                document.getElementById('cost-hp').innerText = `${shopCosts.hp} G`;
+                addLog(`「超・高機動プロテイン」を購入。最大HPが 100 上がり、全回復した！`, "log-system");
+            } else if (type === 'debuff') {
+                player.debuffLevel += 1;
+                shopCosts.debuff = Math.floor(cost * 1.5);
+                document.getElementById('cost-debuff').innerText = `${shopCosts.debuff} G`;
+                addLog(`「ハイパーもふもふ囮ドール」を購入。敵の攻撃力を大幅に弱体化した！`, "log-system");
+                if (currentEnemy) {
+                    currentEnemy.atk = Math.max(1, currentEnemy.atk - 5);
+                }
+            }
+
+            updateUI();
+
+
+
+        }
+
+        // タブ切り替え
+        function switchTab(tab) {
+            document.getElementById('tabShopBtn').classList.remove('active');
+            document.getElementById('tabLogBtn').classList.remove('active');
+            document.getElementById('tab-shop').style.display = 'none';
+            document.getElementById('tab-log').style.display = 'none';
+
+            if (tab === 'shop') {
+                document.getElementById('tabShopBtn').classList.add('active');
+                document.getElementById('tab-shop').style.display = 'block';
+            } else {
+                document.getElementById('tabLogBtn').classList.add('active');
+                document.getElementById('tab-log').style.display = 'block';
+            }
+        }
+
+        // 戦闘ログ追加
+
+
+
+        function addLog(text, className) {
+            const line = document.createElement('div');
+            line.className = `log-line ${className}`;
+            line.innerText = text;
+            logContainer.appendChild(line);
+            
+            if (logContainer.children.length > 40) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+            
+            const logTab = document.getElementById('tab-log');
+            logTab.scrollTop = logTab.scrollHeight;
+        }
+
+        // ビジュアルエフェクト：ダメージ数字のポップアップ
+        function createDamagePopup(target, amount, prefix = '', isDps = false, isToPlayer = false) {
+            const rect = target.getBoundingClientRect();
+            const containerRect = gameScreen.getBoundingClientRect();
+            
+
+
+
+            const popup = document.createElement('div');
+            popup.className = 'damage-popup';
+            
+            if (isDps) popup.classList.add('enemy-damage');
+            if (isToPlayer) popup.classList.add('player-heal');
+
+            popup.innerText = (prefix ? prefix + ' ' : '') + amount;
+            
+            const randomX = (Math.random() - 0.5) * 60;
+            const randomY = (Math.random() - 0.5) * 30;
+
+            popup.style.left = `${rect.left - containerRect.left + (rect.width / 2) + randomX}px`;
+            popup.style.top = `${rect.top - containerRect.top + (rect.height / 2) + randomY}px`;
+
+            gameScreen.appendChild(popup);
+
+            setTimeout(() => {
+                popup.remove();
+            }, 500);
+
+
+
+        }
+
+        // 画面/ターゲットシェイク
+        function triggerHitEffect(element, isScreen = false) {
+            if (isScreen) {
+                element.classList.add('shake');
+                setTimeout(() => element.classList.remove('shake'), 150);
+            } else {
+                element.style.transform = 'scale(0.88) rotate(-5deg)';
+                setTimeout(() => element.style.transform = 'none', 50);
+            }
+        }
+
+        // 自作モーダル制御
+        function showModal(title, text) {
+            document.getElementById('modalTitle').innerHTML = title;
+            document.getElementById('modalText').innerHTML = text;
+            document.getElementById('gameModal').style.display = 'flex';
+        }
+
+
+
+
+        function closeModal() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
+
+
