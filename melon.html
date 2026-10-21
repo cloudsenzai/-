@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Melon Sandbox 2D Simulator (GIGA TNT Explosion Update)</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #121212;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: #e0e0e0;
+            overflow: hidden;
+            display: flex;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* サイドバーメニュー */
+        #sidebar {
+            width: 280px;
+            background-color: #1a1a1a;
+            border-right: 2px solid #2d2d2d;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+            height: 100vh;
+            z-index: 10;
+            box-shadow: 5px 0 15px rgba(0, 0, 0, 0.5);
+        }
+
+        #sidebar h2 {
+            margin: 0 0 5px 0;
+            color: #4caf50;
+            font-size: 22px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            margin: 0 0 25px 0;
+            font-size: 11px;
+            color: #757575;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-section {
+            margin-bottom: 20px;
+        }
+
+        .menu-section h3 {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 0 10px 0;
+            border-bottom: 1px solid #2d2d2d;
+            padding-bottom: 5px;
+        }
+
+        /* スポーンボタン群 */
+        .btn-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        button {
+            background-color: #262626;
+            color: #e0e0e0;
+            border: 1px solid #3a3a3a;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-align: left;
+            width: 100%;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        button:hover {
+            background-color: #333333;
+            border-color: #4caf50;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(76, 175, 80, 0.15);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.active {
+            background-color: #2e5a30;
+            border-color: #4caf50;
+            color: #ffffff;
+            box-shadow: inset 0 0 8px rgba(76, 175, 80, 0.6);
+        }
+
+        button .emoji {
+            font-size: 18px;
+            display: inline-block;
+            width: 24px;
+            text-align: center;
+        }
+
+        .danger-btn {
+            background-color: #331c1c;
+            border-color: #592828;
+            color: #ff8a80;
+            margin-top: auto;
+        }
+
+        .danger-btn:hover {
+            background-color: #d32f2f;
+            border-color: #f44336;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
+        }
+
+        /* 操作説明 */
+        .instructions {
+            background-color: #222222;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            color: #b0b0b0;
+            margin-top: 20px;
+            border-left: 4px solid #f44336;
+            line-height: 1.6;
+        }
+
+        .instructions ul {
+            margin: 8px 0 0 0;
+            padding-left: 16px;
+        }
+
+        .instructions li {
+            margin-bottom: 6px;
+        }
+
+        /* メインキャンバス領域 */
+        #canvas-container {
+            flex: 1;
+            position: relative;
+            height: 100vh;
+            background-color: #141414;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+        }
+
+        /* 上部の簡易ステータスバー */
+        #status-bar {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(26, 26, 26, 0.8);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #888;
+            border: 1px solid #2d2d2d;
+            pointer-events: none;
+            backdrop-filter: blur(5px);
+        }
+        #status-bar span {
+            color: #4caf50;
+            font-weight: bold;
+        }
+    </style>
+    <!-- Matter.js 物理エンジンをCDNから取得 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+
+    <!-- サイドバー -->
+    <div id="sidebar">
+        <h2>Melon Sandbox</h2>
+        <div class="subtitle">2D Physics Laboratory</div>
+        
+        <div class="menu-section">
+            <h3>キャラクター</h3>
+            <div class="btn-grid">
+                <button onclick="spawn('melon', this)">
+                    <span class="emoji">🍈</span> メロン人間を選択
+                </button>
+            </div>
+        </div>
+
+        <div class="menu-section">
+            <h3>オブジェクト & 武器</h3>
+            <div class="btn-grid">
+                <button onclick="spawn('box', this)">
+                    <span class="emoji">📦</span> 木箱
+                </button>
+                <button onclick="spawn('ball', this)">
+                    <span class="emoji">⚙️</span> 鉄球
+                </button>
+                <button onclick="spawn('sword', this)">
+                    <span class="emoji">🗡️</span> ブレード (大剣)
+                </button>
+                <button onclick="spawn('bomb', this)">
+                    <span class="emoji">💥</span> GIGA TNT爆弾
+                </button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <strong>☢️ とんでもない大爆発アップデート:</strong>
+            <ul>
+                <li><strong>超広範囲の爆風破壊</strong>：爆発半径が従来の2.5倍（180→450px）に激増。画面内のほぼ全てのオブジェクトを一度に巻き込みます。</li>
+                <li><strong>衝撃のメガ強化</strong>：爆発の物理エネルギーが超強力になり、木箱や鉄球、めろんくんの四肢が凄まじい超高速で四方八方へ消し飛びます。</li>
+                <li><strong>画面フラッシュ効果</strong>：起爆した瞬間に真っ白な光の衝撃波が画面を覆い、本物の爆発さながらのダイナミックなビジュアルを演出します。</li>
+                <li><strong>既存システム完全継承</strong>：接触即起爆、タップ配置、🗡️デザインの正確な当たり判定、自動手動装備、全身バラバラ時のデスポーンフェードアウトはすべて完璧に機能します。</li>
+            </ul>
+        </div>
+
+        <button class="danger-btn" onclick="clearStage()">
+            <span class="emoji">🧹</span> ステージをリセット
+        </button>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <div id="canvas-container">
+        <div id="status-bar">オブジェクト数: <span id="obj-count">0</span></div>
+        <canvas id="worldCanvas"></canvas>
+    </div>
+
+    <script>
+        const { Engine, World, Bodies, Body, Composite, Constraint, Mouse, MouseConstraint, Vector, Events } = Matter;
+
+        const engine = Engine.create({
+            gravity: { y: 1.2 }
+        });
+        const world = engine.world;
+
+        const canvas = document.getElementById('worldCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let explosions = [];
+        let juiceParticles = []; 
+        let pendingRemovals = [];
+        let flashAlpha = 0; // 爆発時の画面ホワイトアウト用フラッシュ変数
+        let ground, leftWall, rightWall;
+        
+        let currentSpawnType = null;
+
+        function resizeCanvas() {
+            const container = document.getElementById('canvas-container');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+            setupBoundaries();
+        }
+
+        function setupBoundaries() {
+            const thickness = 100;
+            
+            if (ground) Composite.remove(world, ground);
+            if (leftWall) Composite.remove(world, leftWall);
+            if (rightWall) Composite.remove(world, rightWall);
+
+            ground = Bodies.rectangle(canvas.width / 2, canvas.height + thickness / 2 - 15, canvas.width * 2, thickness, { 
+                isStatic: true, 
+                label: 'boundary' 
+            });
+            leftWall = Bodies.rectangle(-thickness / 2, canvas.height / 2, thickness, canvas.height * 2, { 
+                isStatic: true, 
+                label: 'boundary' 
+            });
+            rightWall = Bodies.rectangle(canvas.width + thickness / 2, canvas.height / 2, thickness, canvas.height * 2, { 
+                isStatic: true, 
+                label: 'boundary' 
+            });
+
+            Composite.add(world, [ground, leftWall, rightWall]);
+        }
+
+        const mouse = Mouse.create(canvas);
+        const mouseConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: {
+                stiffness: 0.9,
+                angularStiffness: 0.9,
+                render: { visible: false }
+            }
+        });
+        Composite.add(world, mouseConstraint);
+
+        function createMelonRagdoll(x, y) {
+            const headRadius = 18;
+            const torsoW = 24, torsoH = 55;
+            const armW = 9, armH = 26;
+            const legW = 11, legH = 30;
+
+            const group = Body.nextGroup(true);
+            const commonOptions = { collisionFilter: { group: group }, friction: 0.5, restitution: 0.05 };
+
+            const ragdollId = 'ragdoll_' + Math.random().toString(36).substr(2, 9);
+
+            const head = Bodies.circle(x, y - torsoH/2 - headRadius, headRadius, { ...commonOptions, label: 'melon-head' });
+            const torso = Bodies.rectangle(x, y, torsoW, torsoH, { ...commonOptions, label: 'melon-torso' });
+            
+            const leftUpperArm = Bodies.rectangle(x - torsoW/2 - armW/2, y - torsoH/4, armW, armH, { ...commonOptions, label: 'melon-limb' });
+            const leftLowerArm = Bodies.rectangle(x - torsoW/2 - armW/2, y - torsoH/4 + armH, armW, armH, { ...commonOptions, label: 'melon-hand' });
+            const rightUpperArm = Bodies.rectangle(x + torsoW/2 + armW/2, y - torsoH/4, armW, armH, { ...commonOptions, label: 'melon-limb' });
+            const rightLowerArm = Bodies.rectangle(x + torsoW/2 + armW/2, y - torsoH/4 + armH, armW, armH, { ...commonOptions, label: 'melon-hand' });
+
+            const leftUpperLeg = Bodies.rectangle(x - torsoW/4, y + torsoH/2 + legH/2, legW, legH, { ...commonOptions, label: 'melon-limb' });
+            const leftLowerLeg = Bodies.rectangle(x - torsoW/4, y + torsoH/2 + legH + legH/2, legW, legH, { ...commonOptions, label: 'melon-limb' });
+            const rightUpperLeg = Bodies.rectangle(x + torsoW/4, y + torsoH/2 + legH/2, legW, legH, { ...commonOptions, label: 'melon-limb' });
+            const rightLowerLeg = Bodies.rectangle(x + torsoW/4, y + torsoH/2 + legH + legH/2, legW, legH, { ...commonOptions, label: 'melon-limb' });
+
+            const parts = [head, torso, leftUpperArm, leftLowerArm, rightUpperArm, rightLowerArm, leftUpperLeg, leftLowerLeg, rightUpperLeg, rightLowerLeg];
+            parts.forEach(p => {
+                p.ragdollId = ragdollId;
+                p.isDespawning = false;
+                p.despawnAlpha = 1.0;
+                p.painMemory = 0;
+            });
+
+            const connect = (bodyA, bodyB, pointA, pointB, stiffness = 0.7) => {
+                return Constraint.create({
+                    bodyA, bodyB, pointA, pointB, stiffness,
+                    length: 1,
+                    render: { visible: false }
+                });
+            };
+
+            const joints = [
+                connect(head, torso, { x: 0, y: headRadius }, { x: 0, y: -torsoH / 2 }),
+                connect(torso, leftUpperArm, { x: -torsoW / 2, y: -torsoH / 4 }, { x: 0, y: -armH / 2 }),
+                connect(leftUpperArm, leftLowerArm, { x: 0, y: armH / 2 }, { x: 0, y: -armH / 2 }),
+                connect(torso, rightUpperArm, { x: torsoW / 2, y: -torsoH / 4 }, { x: 0, y: -armH / 2 }),
+                connect(rightUpperArm, rightLowerArm, { x: 0, y: armH / 2 }, { x: 0, y: -armH / 2 }),
+                connect(torso, leftUpperLeg, { x: -torsoW / 5, y: torsoH / 2 }, { x: 0, y: -legH / 2 }),
+                connect(leftUpperLeg, leftLowerLeg, { x: 0, y: legH / 2 }, { x: 0, y: -legH / 2 }),
+                connect(torso, rightUpperLeg, { x: torsoW / 5, y: torsoH / 2 }, { x: 0, y: -legH / 2 }),
+                connect(rightUpperLeg, rightLowerLeg, { x: 0, y: legH / 2 }, { x: 0, y: -legH / 2 })
+            ];
+
+            joints.forEach(j => {
+                j.label = 'melon-joint';
+                j.ragdollId = ragdollId; 
+                if (!j.bodyA.melonJoints) j.bodyA.melonJoints = [];
+                if (!j.bodyB.melonJoints) j.bodyB.melonJoints = [];
+                j.bodyA.melonJoints.push(j);
+                j.bodyB.melonJoints.push(j);
+            });
+
+            Composite.add(world, [...parts, ...joints]);
+        }
+
+        function spawn(type, element) {
+            document.querySelectorAll('#sidebar button').forEach(btn => {
+                if (btn !== element) btn.classList.remove('active');
+            });
+
+            if (currentSpawnType === type) {
+                currentSpawnType = null;
+                element.classList.remove('active');
+            } else {
+                currentSpawnType = type;
+                element.classList.add('active');
+            }
+        }
+
+        function executeSpawn(type, x, y) {
+            switch(type) {
+                case 'melon':
+                    createMelonRagdoll(x, y);
+                    break;
+                case 'box':
+                    Composite.add(world, Bodies.rectangle(x, y, 48, 48, {
+                        label: 'box', friction: 0.5, restitution: 0.1,
+                        render: { fillStyle: '#8d6e63' }
+                    }));
+                    break;
+                case 'ball':
+                    Composite.add(world, Bodies.circle(x, y, 22, {
+                        label: 'ball', density: 0.03, friction: 0.2, restitution: 0.4
+                    }));
+                    break;
+                case 'sword': {
+                    const blade = Bodies.rectangle(x, y - 14, 10, 52, { label: 'sword-blade' });
+                    const guard = Bodies.rectangle(x, y + 16, 28, 6, { label: 'sword-guard' });
+                    const hilt = Bodies.rectangle(x, y + 26, 6, 14, { label: 'sword-hilt' });
+                    
+                    const sword = Body.create({
+                        parts: [blade, guard, hilt],
+                        label: 'sword',
+                        friction: 0.3,
+                        restitution: 0.1,
+                        density: 0.012
+                    });
+                    
+                    sword.isEquipped = false;
+                    sword.isStuck = false;
+                    
+                    Composite.add(world, sword);
+                    break;
+                }
+                case 'bomb':
+                    Composite.add(world, Bodies.circle(x, y, 20, {
+                        label: 'bomb', friction: 0.6, restitution: 0.2
+                    }));
+                    break;
+            }
+        }
+
+        function spawnJuice(x, y, intensity, countMultiplier = 1.0) {
+            const baseCount = Math.floor(intensity * 12.0); 
+            const particleCount = Math.min(Math.max(Math.floor(baseCount * countMultiplier), 3), 80); 
+            
+            for (let i = 0; i < particleCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const spreadSpeed = (Math.random() * intensity * 1.3) + 3.0; // 飛び散る最高速度も引き上げ
+                juiceParticles.push({
+                    x: x + (Math.random() * 12 - 6), 
+                    y: y + (Math.random() * 12 - 6),
+                    vx: Math.cos(angle) * spreadSpeed,
+                    vy: Math.sin(angle) * spreadSpeed - 1.5, 
+                    radius: Math.random() * 4.0 + 2.0,       
+                    alpha: 1.0,
+                    color: Math.random() > 0.4 ? '#2e7d32' : (Math.random() > 0.5 ? '#4caf50' : '#8bc34a')
+                });
+            }
+        }
+
+        function checkAndBreakJoint(body, intensity) {
+            if (!body.melonJoints || body.melonJoints.length === 0 || body.isDespawning) return;
+
+            const breakThreshold = 15.0; 
+            if (intensity < breakThreshold) return;
+
+            const breakChance = (intensity - breakThreshold) * 0.08; 
+
+            if (Math.random() < breakChance) {
+                const targetIdx = Math.floor(Math.random() * body.melonJoints.length);
+                const joint = body.melonJoints[targetIdx];
+
+                if (joint) {
+                    Composite.remove(world, joint);
+
+                    if (joint.bodyA && joint.bodyA.melonJoints) {
+                        joint.bodyA.melonJoints = joint.bodyA.melonJoints.filter(j => j !== joint);
+                        if (joint.bodyA.label !== 'melon-torso') joint.bodyA.collisionFilter.group = 0;
+                    }
+                    if (joint.bodyB && joint.bodyB.melonJoints) {
+                        joint.bodyB.melonJoints = joint.bodyB.melonJoints.filter(j => j !== joint);
+                        if (joint.bodyB.label !== 'melon-torso') joint.bodyB.collisionFilter.group = 0;
+                    }
+
+                    spawnJuice(body.position.x, body.position.y, intensity * 2.0, 2.0);
+                }
+            }
+        }
+
+        // ☢️ 【とんでもない大爆発】へと爆風・範囲・演出を完全リミッター解除
+        function triggerExplosion(bomb) {
+            if (pendingRemovals.includes(bomb)) return;
+            pendingRemovals.push(bomb);
+
+            const bombPos = bomb.position;
+            const blastRadius = 450;    // 【大幅強化】 180px から 450px の超広範囲に
+            const blastForce = 0.28;    // 【大幅強化】 0.06 から 0.28 の超衝撃波エネルギーへ変更
+            
+            flashAlpha = 0.75;          // 起爆時に画面を真っ白にする光のフラッシュ演出をON
+
+            const allBodies = Composite.allBodies(world);
+            allBodies.forEach(body => {
+                if (body === bomb || body.label === 'boundary') return;
+
+                const distVector = Vector.sub(body.position, bombPos);
+                const distance = Vector.magnitude(distVector);
+
+                if (distance < blastRadius && distance > 0) {
+                    const dir = Vector.normalise(distVector);
+                    const forceFactor = (blastRadius - distance) / blastRadius;
+                    
+                    // 凄まじい衝撃を発生させオブジェクトを投げ飛ばす
+                    const force = Vector.mult(dir, blastForce * forceFactor * body.mass);
+                    Body.applyForce(body, body.position, force);
+
+                    if (body.label && body.label.startsWith('melon')) {
+                        body.painMemory = 100; // 痛み記憶をカンストへ
+                        
+                        // 爆風による超大量の果汁飛散
+                        spawnJuice(body.position.x, body.position.y, 25.0, 3.0);
+                        
+                        // 【超絶破壊】至近距離の関節は100%崩壊を免れない壊滅的ダメージを処理
+                        checkAndBreakJoint(body, 60.0);
+                        checkAndBreakJoint(body, 45.0);
+                    }
+                }
+            });
+
+            // 連鎖・隣り合う他のTNT爆弾が爆風圏内にあった場合も誘爆トリガーを引く
+            allBodies.forEach(body => {
+                if (body !== bomb && body.label === 'bomb') {
+                    const dist = Vector.magnitude(Vector.sub(body.position, bombPos));
+                    if (dist < blastRadius - 50) {
+                        // わずかな時差を作って連鎖起爆させる
+                        setTimeout(() => triggerExplosion(body), 60);
+                    }
+                }
+            });
+
+            // ビジュアル用の巨大炎リングエフェクトを追加
+            explosions.push({
+                x: bombPos.x, y: bombPos.y, r: 15, maxR: blastRadius, alpha: 1.0
+            });
+        }
+
+        function handleMelonPain(pair, isContinuous) {
+            const bodyA = pair.bodyA.parent || pair.bodyA;
+            const bodyB = pair.bodyB.parent || pair.bodyB;
+            if (!bodyA || !bodyB) return;
+
+            const labelA = bodyA.label || '';
+            const labelB = bodyB.label || '';
+
+            const isMelonA = labelA.startsWith('melon') && !bodyA.isDespawning;
+            const isMelonB = labelB.startsWith('melon') && !bodyB.isDespawning;
+
+            if (isMelonA || isMelonB) {
+                const melonBody = isMelonA ? bodyA : bodyB;
+                const otherBody = isMelonA ? bodyB : bodyA;
+                const otherLabel = otherBody ? otherBody.label : '';
+
+                const velA = bodyA.velocity || { x: 0, y: 0 };
+                const velB = bodyB.velocity || { x: 0, y: 0 };
+                const relSpeed = Math.sqrt(Math.pow(velA.x - velB.x, 2) + Math.pow(velA.y - velB.y, 2));
+
+                let intensity = relSpeed;
+                const isBoundary = (otherLabel === 'boundary');
+
+                if (otherBody && !isBoundary) {
+                    if (otherLabel === 'ball') {
+                        intensity *= 2.8; 
+                    } else if (otherLabel === 'sword') {
+                        intensity *= 2.2; 
+                    } else if (otherLabel === 'box') {
+                        intensity *= 1.3; 
+                    }
+                }
+
+                const threshold = isBoundary ? 1.8 : 0.6; 
+
+                if (intensity > threshold) {
+                    let contactPoint = (pair.collision && pair.collision.supports && pair.collision.supports.length > 0) 
+                        ? pair.collision.supports[0] 
+                        : melonBody.position;
+
+                    const multiplier = isContinuous ? 0.45 : 1.3;
+                    const finalIntensity = isBoundary ? Math.max(intensity * 1.5, 2.5) : intensity;
+
+                    spawnJuice(contactPoint.x, contactPoint.y, finalIntensity, multiplier);
+                    
+                    if (!melonBody.painMemory) melonBody.painMemory = 0;
+                    melonBody.painMemory += isContinuous ? finalIntensity * 0.15 : finalIntensity * 1.8;
+
+                    const damageIntensity = isContinuous ? finalIntensity * 0.12 : finalIntensity;
+                    checkAndBreakJoint(melonBody, damageIntensity);
+                }
+            }
+        }
+
+        Events.on(mouseConstraint, 'mousedown', (event) => {
+            if (currentSpawnType) {
+                const pos = event.mouse.position;
+                executeSpawn(currentSpawnType, pos.x, pos.y);
+            }
+        });
+
+        Events.on(engine, 'collisionStart', (event) => {
+            event.pairs.forEach(pair => {
+                const partA = pair.bodyA;
+                const partB = pair.bodyB;
+                const rootA = partA.parent || partA;
+                const rootB = partB.parent || partB;
+                const labelA = rootA.label || '';
+                const labelB = rootB.label || '';
+
+                if (labelA === 'bomb' || labelB === 'bomb') {
+                    const bomb = labelA === 'bomb' ? rootA : rootB;
+                    triggerExplosion(bomb);
+                    return; 
+                }
+
+                if (partA.label === 'sword-blade' || partB.label === 'sword-blade') {
+                    const swordPart = partA.label === 'sword-blade' ? partA : partB;
+                    const swordRoot = swordPart.parent;
+                    const melonPart = partA.label === 'sword-blade' ? partB : partA;
+                    const melonRoot = melonPart.parent || melonPart;
+
+                    if (melonRoot.label && melonRoot.label.startsWith('melon') && !melonPart.isDespawning && !swordRoot.isEquipped && !swordRoot.isStuck) {
+                        const velA = rootA.velocity || { x: 0, y: 0 };
+                        const velB = rootB.velocity || { x: 0, y: 0 };
+                        const relSpeed = Math.sqrt(Math.pow(velA.x - velB.x, 2) + Math.pow(velA.y - velB.y, 2));
+
+                        if (relSpeed > 3.5) { 
+                            let contactPoint = (pair.collision && pair.collision.supports && pair.collision.supports.length > 0) 
+                                ? pair.collision.supports[0] 
+                                : melonPart.position;
+
+                            const stickJoint = Constraint.create({
+                                bodyA: melonPart,
+                                bodyB: swordRoot,
+                                pointA: Vector.sub(contactPoint, melonPart.position),
+                                pointB: Vector.sub(contactPoint, swordRoot.position),
+                                stiffness: 0.85,
+                                length: 0,
+                                render: { visible: false }
+                            });
+                            stickJoint.label = 'stick-joint';
+                            stickJoint.ragdollId = melonPart.ragdollId;
+                            Composite.add(world, stickJoint);
+
+                            swordRoot.isStuck = true;
+                            spawnJuice(contactPoint.x, contactPoint.y, relSpeed * 3.5, 2.5);
+                            melonPart.painMemory += relSpeed * 6.0;
+                        }
+                    }
+                }
+
+                handleMelonPain(pair, false);
+            });
+        });
+
+        Events.on(engine, 'collisionActive', (event) => {
+            event.pairs.forEach(pair => {
+                handleMelonPain(pair, true);
+            });
+        });
+
+        function clearStage() {
+            const bodies = Composite.allBodies(world);
+            bodies.forEach(b => {
+                if (b.label !== 'boundary') Composite.remove(world, b);
+            });
+
+            const constraints = Composite.allConstraints(world);
+            constraints.forEach(c => {
+                if (c !== mouseConstraint.constraint) {
+                    Composite.remove(world, c);
+                }
+            });
+
+            explosions = [];
+            juiceParticles = []; 
+            pendingRemovals = [];
+            flashAlpha = 0;
+            
+            currentSpawnType = null;
+            document.querySelectorAll('#sidebar button').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#1d1d1d';
+            ctx.lineWidth = 1;
+            const size = 45;
+            for (let x = 0; x < canvas.width; x += size) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += size) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+        }
+
+        function drawJoints() {
+            const constraints = Composite.allConstraints(world);
+            constraints.forEach(c => {
+                if (c === mouseConstraint.constraint || c.isDespawning) return;
+
+                let posB = c.pointB;
+                if (c.bodyB) {
+                    posB = Vector.add(c.bodyB.position, Vector.rotate(c.pointB, c.bodyB.angle));
+                }
+
+                ctx.beginPath();
+                ctx.arc(posB.x, posB.y, 3.5, 0, Math.PI * 2);
+                ctx.fillStyle = '#111111';
+                ctx.strokeStyle = '#757575';
+                ctx.lineWidth = 1;
+                ctx.fill();
+                ctx.stroke();
+            });
+        }
+
+        function loop() {
+            Engine.update(engine, 1000 / 60);
+
+            const allBodies = Composite.allBodies(world);
+
+            const freeSwords = allBodies.filter(b => b.label === 'sword' && !b.isEquipped && !b.isStuck);
+            const livingHands = allBodies.filter(b => b.label === 'melon-hand' && !b.isDespawning);
+
+            freeSwords.forEach(sword => {
+                const hiltPart = sword.parts.find(p => p.label === 'sword-hilt');
+                if (!hiltPart) return;
+
+                livingHands.forEach(hand => {
+                    const dist = Vector.magnitude(Vector.sub(hiltPart.position, hand.position));
+                    if (dist < 25) { 
+                        const equipJoint = Constraint.create({
+                            bodyA: hand,
+                            bodyB: sword,
+                            pointA: { x: 0, y: 5 },   
+                            pointB: { x: 0, y: 22 },  
+                            stiffness: 0.9,
+                            length: 1,
+                            render: { visible: false }
+                        });
+                        equipJoint.label = 'equip-joint';
+                        equipJoint.ragdollId = hand.ragdollId;
+                        Composite.add(world, equipJoint);
+
+                        sword.isEquipped = true;
+                        sword.equippedHand = hand;
+                        spawnJuice(hand.position.x, hand.position.y, 2.0, 0.5);
+                    }
+                });
+            });
+
+            const allConstraints = Composite.allConstraints(world);
+            const livingRagdollIds = new Set();
+            allConstraints.forEach(c => {
+                if (c.ragdollId && c.label === 'melon-joint') livingRagdollIds.add(c.ragdollId);
+            });
+
+            if (pendingRemovals.length > 0) {
+                pendingRemovals.forEach(b => Composite.remove(world, b));
+                pendingRemovals = [];
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+
+            const validObjCount = allBodies.filter(b => b.label !== 'boundary' && !b.isDespawning).length;
+            document.getElementById('obj-count').innerText = validObjCount;
+
+            allBodies.forEach(body => {
+                const label = body.label || '';
+
+                if (body.ragdollId && !body.isDespawning) {
+                    if (!livingRagdollIds.has(body.ragdollId)) {
+                        body.isDespawning = true;
+                        if (label === 'melon-torso') {
+                            spawnJuice(body.position.x, body.position.y, 6.0, 2.0);
+                        }
+                    }
+                }
+
+                if (body.isDespawning) {
+                    body.despawnAlpha -= 0.012; 
+                    
+                    if (body.despawnAlpha > 0.98) {
+                        allConstraints.forEach(c => {
+                            if (c.ragdollId === body.ragdollId && c.label !== 'melon-joint') {
+                                Composite.remove(world, c);
+                                if (c.bodyB && c.bodyB.label === 'sword') {
+                                    c.bodyB.isEquipped = false;
+                                    c.bodyB.isStuck = false;
+                                }
+                            }
+                        });
+                    }
+
+                    if (body.despawnAlpha <= 0) {
+                        if (!pendingRemovals.includes(body)) {
+                            pendingRemovals.push(body);
+                        }
+                        return; 
+                    }
+                }
+
+                ctx.save();
+                if (body.isDespawning) {
+                    ctx.globalAlpha = body.despawnAlpha;
+                }
+
+                if (!body.painMemory) body.painMemory = 0;
+                body.painMemory *= 0.98; 
+
+                if (label === 'melon-torso' && !body.isDespawning) {
+                    if (mouseConstraint.body !== body) {
+                        if (body.painMemory < 20) {
+                            const targetAngle = 0;
+                            const angleDiff = targetAngle - body.angle;
+                            
+                            const recoveryFactor = 0.022 * (1 - body.painMemory / 20);
+                            Body.setAngle(body, body.angle + angleDiff * recoveryFactor);
+                            Body.setAngularVelocity(body, body.angularVelocity * 0.88);
+
+                            if (body.position.y > canvas.height - 180) {
+                                Body.applyForce(body, body.position, { x: 0, y: -0.0004 * body.mass });
+                            }
+                        }
+                    }
+                }
+                
+                if (label === 'melon-head' && mouseConstraint.body !== body && !body.isDespawning) {
+                    if (body.painMemory < 20) {
+                        const targetAngle = 0;
+                        const angleDiff = targetAngle - body.angle;
+                        const recoveryFactor = 0.03 * (1 - body.painMemory / 20);
+                        Body.setAngle(body, body.angle + angleDiff * recoveryFactor);
+                    }
+                }
+
+                if (label.startsWith('melon') && !body.isDespawning) {
+                    let isTouchingWall = false;
+                    let contactX = body.position.x;
+                    let contactY = body.position.y;
+                    
+                    const padding = 20; 
+                    
+                    if (body.position.x < padding) { 
+                        isTouchingWall = true;
+                        contactX = 0;
+                    } else if (body.position.x > canvas.width - padding) { 
+                        isTouchingWall = true;
+                        contactX = canvas.width;
+                    }
+                    
+                    if (body.position.y > canvas.height - padding - 12) { 
+                        isTouchingWall = true;
+                        contactY = canvas.height - 15;
+                    } else if (body.position.y < padding) { 
+                        isTouchingWall = true;
+                        contactY = 0;
+                    }
+
+                    if (isTouchingWall) {
+                        const currentSpeed = body.speed || 0;
+                        const isDragged = (mouseConstraint.body === body);
+                        const mouseSpeed = (mouseConstraint.mouse && mouseConstraint.mouse.velocity) 
+                            ? Vector.magnitude(mouseConstraint.mouse.velocity) 
+                            : 0;
+
+                        if ((isDragged && mouseSpeed > 0.8) || (!isDragged && currentSpeed > 2.0)) {
+                            const speedFactor = isDragged ? mouseSpeed * 2.5 : currentSpeed;
+                            const intensity = Math.max(speedFactor * 1.3, 2.5);
+                            
+                            if (Math.random() < 0.45) { 
+                                spawnJuice(contactX, contactY, intensity, 0.8);
+                            }
+
+                            body.painMemory += intensity * 0.5;
+
+                            if (Math.random() < 0.03) {
+                                checkAndBreakJoint(body, intensity * 1.2);
+                            }
+                        }
+                    }
+                }
+
+                if (label === 'sword') {
+                    body.parts.forEach((part, idx) => {
+                        if (idx === 0) return; 
+                        ctx.beginPath();
+                        ctx.moveTo(part.vertices[0].x, part.vertices[0].y);
+                        for (let i = 1; i < part.vertices.length; i++) {
+                            ctx.lineTo(part.vertices[i].x, part.vertices[i].y);
+                        }
+                        ctx.closePath();
+
+                        if (part.label === 'sword-blade') {
+                            ctx.fillStyle = '#e0e0e0'; 
+                            ctx.strokeStyle = '#b0b0b0';
+                            ctx.lineWidth = 1.5;
+                            ctx.fill(); ctx.stroke();
+
+                            ctx.beginPath();
+                            ctx.moveTo(part.vertices[0].x + (part.vertices[1].x - part.vertices[0].x)/2, part.vertices[0].y);
+                            ctx.lineTo(part.vertices[3].x + (part.vertices[2].x - part.vertices[3].x)/2, part.vertices[3].y);
+                            ctx.strokeStyle = '#ffffff';
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        } else if (part.label === 'sword-guard') {
+                            ctx.fillStyle = '#ffd700'; 
+                            ctx.strokeStyle = '#daa520';
+                            ctx.lineWidth = 1.5;
+                            ctx.fill(); ctx.stroke();
+                        } else if (part.label === 'sword-hilt') {
+                            ctx.fillStyle = '#8b4513'; 
+                            ctx.strokeStyle = '#5c2e0b';
+                            ctx.lineWidth = 1.5;
+                            ctx.fill(); ctx.stroke();
+                        }
+                    });
+                } else if (label.startsWith('melon-head') || label === 'ball' || label === 'bomb') {
+                    ctx.translate(body.position.x, body.position.y);
+                    ctx.rotate(body.angle);
+                    ctx.beginPath();
+                    ctx.arc(0, 0, body.circleRadius, 0, Math.PI * 2);
+
+                    if (label === 'melon-head') {
+                        ctx.fillStyle = '#2e7d32';
+                        ctx.strokeStyle = '#1b5e20';
+                        ctx.lineWidth = 2.5;
+                        ctx.fill(); ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(-body.circleRadius * 0.4, 0, body.circleRadius * 0.8, -Math.PI / 3, Math.PI / 3);
+                        ctx.strokeStyle = '#388e3c';
+                        ctx.lineWidth = 1.5;
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(body.circleRadius * 0.4, 0, body.circleRadius * 0.8, Math.PI * 2 / 3, Math.PI * 4 / 3);
+                        ctx.stroke();
+
+                        ctx.strokeStyle = '#154d1a';
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.moveTo(-7, -5); ctx.lineTo(-3, -1);
+                        ctx.moveTo(-3, -5); ctx.lineTo(-7, -1);
+                        ctx.moveTo(3, -5); ctx.lineTo(7, -1);
+                        ctx.moveTo(7, -5); ctx.lineTo(3, -1);
+                        ctx.stroke();
+
+                    } else if (label === 'ball') {
+                        ctx.fillStyle = '#546e7a';
+                        ctx.strokeStyle = '#263238';
+                        ctx.lineWidth = 3;
+                        ctx.fill(); ctx.stroke();
+                        ctx.beginPath();
+                        ctx.arc(-body.circleRadius * 0.3, -body.circleRadius * 0.3, body.circleRadius * 0.15, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                        ctx.fill();
+                    } else if (label === 'bomb') {
+                        ctx.fillStyle = '#d32f2f';
+                        ctx.strokeStyle = '#5c0000';
+                        ctx.lineWidth = 3;
+                        ctx.fill(); ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.moveTo(0, -body.circleRadius);
+                        ctx.lineTo(6, -body.circleRadius - 8);
+                        ctx.strokeStyle = '#ffa726';
+                        ctx.lineWidth = 2.5;
+                        ctx.stroke();
+
+                        ctx.beginPath();
+                        ctx.arc(6, -body.circleRadius - 8, 3, 0, Math.PI * 2);
+                        ctx.fillStyle = '#ffeb3b';
+                        ctx.fill();
+                    }
+                } else {
+                    ctx.beginPath();
+                    ctx.moveTo(body.vertices[0].x, body.vertices[0].y);
+                    for (let i = 1; i < body.vertices.length; i++) {
+                        ctx.lineTo(body.vertices[i].x, body.vertices[i].y);
+                    }
+                    ctx.closePath();
+
+                    if (label === 'melon-torso') {
+                        ctx.fillStyle = '#388e3c';
+                        ctx.strokeStyle = '#1b5e20';
+                        ctx.lineWidth = 2.5;
+                        ctx.fill(); ctx.stroke();
+                    } else if (label === 'melon-limb' || label === 'melon-hand') {
+                        ctx.fillStyle = '#4caf50';
+                        ctx.strokeStyle = '#1b5e20';
+                        ctx.lineWidth = 2;
+                        ctx.fill(); ctx.stroke();
+                    } else if (label === 'box') {
+                        ctx.fillStyle = '#8d6e63';
+                        ctx.strokeStyle = '#4e342e';
+                        ctx.lineWidth = 3;
+                        ctx.fill(); ctx.stroke();
+                        
+                        ctx.beginPath();
+                        ctx.moveTo(body.vertices[0].x, body.vertices[0].y);
+                        ctx.lineTo(body.vertices[2].x, body.vertices[2].y);
+                        ctx.moveTo(body.vertices[1].x, body.vertices[1].y);
+                        ctx.lineTo(body.vertices[3].x, body.vertices[3].y);
+                        ctx.strokeStyle = '#5d4037';
+                        ctx.lineWidth = 2;
+                        ctx.stroke();
+                    } else if (label === 'boundary') {
+                        ctx.fillStyle = '#222222';
+                        ctx.strokeStyle = '#333333';
+                        ctx.lineWidth = 2;
+                        ctx.fill(); ctx.stroke();
+                    }
+                }
+                ctx.restore();
+            });
+
+            drawJoints();
+
+            // 緑のメロン果汁粒子ループ
+            if (juiceParticles.length > 950) {
+                juiceParticles.splice(0, juiceParticles.length - 950);
+            }
+
+            for (let i = juiceParticles.length - 1; i >= 0; i--) {
+                let p = juiceParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.22;       
+                p.alpha -= 0.011;   
+
+                if (p.alpha <= 0) {
+                    juiceParticles.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // 巨大炎リングエフェクトの描画ループ
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                let exp = explosions[i];
+                exp.r += (exp.maxR - exp.r) * 0.16; // 展開スピードを少しハイスピードに
+                exp.alpha -= 0.03;
+
+                if (exp.alpha <= 0) {
+                    explosions.splice(i, 1);
+                    continue;
+                }
+
+                ctx.save();
+                // 外側の赤いド迫力の衝撃波リング
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, exp.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(244, 67, 54, ${exp.alpha * 0.45})`;
+                ctx.fill();
+
+                // 内側のオレンジの巨大コア
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, exp.r * 0.75, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 152, 0, ${exp.alpha * 0.6})`;
+                ctx.fill();
+
+                // 最内側のまばゆい中心核
+                ctx.beginPath();
+                ctx.arc(exp.x, exp.y, exp.r * 0.4, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255, 253, 231, ${exp.alpha * 0.85})`;
+                ctx.fill();
+                ctx.restore();
+            }
+
+            // ☢️ 爆発時のホワイトアウト（画面フラッシュ）描画
+            if (flashAlpha > 0) {
+                ctx.save();
+                ctx.fillStyle = `rgba(255, 255, 255, ${flashAlpha})`;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.restore();
+                flashAlpha -= 0.04; // 徐々に元の画面に戻す
+            }
+
+            requestAnimationFrame(loop);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        loop();
+        
+        setTimeout(() => executeSpawn('melon', canvas.width / 2, canvas.height / 3), 300);
+    </script>
+</body>
+</html>
